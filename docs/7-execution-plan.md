@@ -71,10 +71,10 @@
 - 루트 `package.json` `workspaces` 배열에 `"backend"` 추가
 
 **완료 조건**
-- [ ] 로컬 PostgreSQL에서 `todolist_dev` 접속 가능
-- [ ] `backend/.env.example`이 버전 관리에 포함되어 모든 키 보유
-- [ ] `backend/.env`가 `.gitignore`에 의해 추적 제외
-- [ ] `npm install` (루트) 오류 없이 완료
+- [x] 로컬 PostgreSQL에서 `todolist_dev` 접속 가능
+- [x] `backend/.env.example`이 버전 관리에 포함되어 모든 키 보유
+- [x] `backend/.env`가 `.gitignore`에 의해 추적 제외
+- [x] `npm install` (루트) 오류 없이 완료
 
 **의존 태스크**: 없음 | **예상 소요**: 30분
 
@@ -89,10 +89,10 @@
 - 루트 `package.json`에 `"db:schema"` 스크립트 추가
 
 **완료 조건**
-- [ ] `\dt`로 `users`, `categories`, `todos` 확인
-- [ ] `\di`로 인덱스 4개 (`idx_categories_user_id`, `idx_todos_user_id`, `idx_todos_category_id`, `idx_todos_user_status`) 확인
-- [ ] UNIQUE, CASCADE, SET NULL 제약 동작 검증 완료
-- [ ] `schema.sql` 재실행 시 멱등성 확인
+- [x] `\dt`로 `users`, `categories`, `todos` 확인
+- [x] `\di`로 인덱스 4개 (`idx_categories_user_id`, `idx_todos_user_id`, `idx_todos_category_id`, `idx_todos_user_status`) 확인
+- [x] UNIQUE, CASCADE, SET NULL 제약 동작 검증 완료
+- [x] `schema.sql` 재실행 시 멱등성 확인
 
 **의존 태스크**: DB-01 | **예상 소요**: 20분
 

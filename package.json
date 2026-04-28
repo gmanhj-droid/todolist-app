@@ -1,0 +1,13 @@
+{
+  "name": "todolist-app",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "db:schema": "psql -d todolist_dev -f database/schema.sql"
+  }
+}

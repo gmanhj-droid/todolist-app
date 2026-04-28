@@ -1,259 +1,119 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.0",
   "info": {
     "title": "TodoList API",
-    "description": "Personal todo management application API. Allows authenticated users to manage todos organized by category with due-date based status tracking.\n\n## Authentication\nAll endpoints (except `/auth/sign-up` and `/auth/sign-in`) require a Bearer JWT token in the `Authorization` header.\n\n## Todo Status Logic\nTodo status is derived from `is_completed` and `due_date` fields — it is never stored directly:\n- **completed**: `is_completed = true`\n- **overdue**: `is_completed = false` AND `due_date < today`\n- **active**: `is_completed = false` AND (`due_date >= today` OR `due_date IS NULL`)\n\n## Business Rules\n- `BR-01`: All app features require an authenticated user.\n- `BR-02`: Categories are user-scoped and are never shared between users.\n- `BR-03`: Todo status is one of `active`, `overdue`, or `completed`.\n- `BR-04`: Overdue condition: `due_date < today AND is_completed = false`.\n- `BR-05`: A todo may be created without a category.\n- `BR-06`: Users can only read, modify, or delete their own resources.\n- `BR-07`: Deleting a category does NOT delete its todos; their `category_id` becomes `null`.\n\n## Error Response Format\nAll errors follow the shape:\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Human-readable message\",\n    \"type\": \"ERROR_TYPE_CONSTANT\"\n  }\n}\n```",
+    "description": "Comprehensive API for managing personal todos and categories with status tracking.",
     "version": "1.0.0",
     "contact": {
-      "name": "HoonJin Choi",
-      "email": "gmanhj@gmail.com"
+      "name": "Hunjin Choi",
+      "email": "hunjin.choi@example.com"
     }
   },
   "servers": [
     {
-      "url": "http://localhost:3000/api",
-      "description": "Local development server"
-    },
-    {
-      "url": "https://api.example.com/api",
-      "description": "Production server"
-    }
-  ],
-  "tags": [
-    {
-      "name": "Auth",
-      "description": "User registration, login, logout, and account deletion"
-    },
-    {
-      "name": "Todos",
-      "description": "CRUD operations for todos, plus completion toggling"
-    },
-    {
-      "name": "Categories",
-      "description": "CRUD operations for user-defined todo categories"
+      "url": "/api",
+      "description": "Production API Server"
     }
   ],
   "paths": {
     "/auth/sign-up": {
       "post": {
-        "tags": ["Auth"],
-        "operationId": "signUp",
-        "summary": "Register a new user account",
-        "description": "Creates a new user account with email and password. On success, returns a JWT token and the created user object so the client can automatically log in.\n\n**Validation rules:**\n- `email` must be a valid RFC 5322 email address and must be unique.\n- `password` must be at least 8 characters long.\n- `passwordConfirm` must match `password` (client-side guard; server validates password length only).",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a new user",
+        "description": "Creates a new user account and returns a JWT token for immediate login.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SignUpRequest"
-              },
-              "examples": {
-                "validRequest": {
-                  "summary": "Successful sign-up payload",
-                  "value": {
-                    "email": "chulsu.kim@example.com",
-                    "password": "SecurePass123"
-                  }
-                }
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Account created. JWT token returned.",
+            "description": "Successfully registered",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuthResponse"
-                },
-                "examples": {
-                  "success": {
-                    "summary": "Newly created user with token",
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9...",
-                        "user": {
-                          "id": 1,
-                          "email": "chulsu.kim@example.com",
-                          "created_at": "2026-04-28T10:00:00.000Z"
-                        }
-                      }
-                    }
-                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error — missing field, invalid email format, or password shorter than 8 characters.",
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "shortPassword": {
-                    "summary": "Password too short",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "비밀번호는 최소 8자 이상이어야 합니다.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  },
-                  "invalidEmail": {
-                    "summary": "Malformed email",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "유효하지 않은 이메일 형식입니다.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
           },
           "409": {
-            "description": "Email already registered.",
+            "description": "Email already exists",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "duplicate": {
-                    "summary": "Duplicate email",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "이미 가입된 이메일입니다.",
-                        "type": "CONFLICT_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
     "/auth/sign-in": {
       "post": {
-        "tags": ["Auth"],
-        "operationId": "signIn",
-        "summary": "Authenticate and receive a JWT token",
-        "description": "Validates email and password against the database (bcrypt comparison). On success, returns a signed HS-512 JWT token valid for 7 days.\n\nFor security reasons the error message does NOT distinguish between an unknown email and a wrong password.",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login to existing account",
+        "description": "Authenticates user and returns a JWT token.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SignInRequest"
-              },
-              "examples": {
-                "validCredentials": {
-                  "summary": "Valid login",
-                  "value": {
-                    "email": "chulsu.kim@example.com",
-                    "password": "SecurePass123"
-                  }
-                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Login successful. JWT token returned.",
+            "description": "Successfully logged in",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuthResponse"
-                },
-                "examples": {
-                  "success": {
-                    "summary": "Authenticated user with token",
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9...",
-                        "user": {
-                          "id": 1,
-                          "email": "chulsu.kim@example.com",
-                          "created_at": "2026-04-28T10:00:00.000Z"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing required fields.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "missingFields": {
-                    "summary": "Email or password missing",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "이메일과 비밀번호를 입력해주세요.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
           },
           "401": {
-            "description": "Invalid credentials (wrong password or unknown email). The message is intentionally generic.",
+            "description": "Invalid credentials",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "wrongCredentials": {
-                    "summary": "Generic auth failure",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "이메일 또는 비밀번호가 일치하지 않습니다.",
-                        "type": "AUTH_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
     "/auth/sign-out": {
       "post": {
-        "tags": ["Auth"],
-        "operationId": "signOut",
-        "summary": "Invalidate the current session",
-        "description": "Server-side logout endpoint. The server acknowledges the logout; the client is responsible for deleting the JWT token from its storage. No blacklist is maintained server-side.",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout current user",
         "security": [
           {
             "bearerAuth": []
@@ -261,40 +121,35 @@
         ],
         "responses": {
           "200": {
-            "description": "Logout acknowledged.",
+            "description": "Successfully logged out",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessMessageResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "message": "로그아웃되었습니다."
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     },
     "/auth/account": {
       "delete": {
-        "tags": ["Auth"],
-        "operationId": "deleteAccount",
-        "summary": "Permanently delete the authenticated user's account",
-        "description": "Deletes the currently authenticated user's account and **all associated data** (todos and categories) via database CASCADE.\n\nThis operation is irreversible.",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Delete user account",
+        "description": "Permanently deletes user account and all associated categories and todos.",
         "security": [
           {
             "bearerAuth": []
@@ -302,351 +157,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Account and all associated data permanently deleted.",
+            "description": "Account successfully deleted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessMessageResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "message": "계정이 삭제되었습니다."
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/todos": {
-      "get": {
-        "tags": ["Todos"],
-        "operationId": "getTodos",
-        "summary": "Retrieve all todos for the authenticated user",
-        "description": "Returns todos owned by the authenticated user. Supports optional filtering by computed status and/or category.\n\nThe `status` field on each returned todo object is computed server-side:\n- `active`: not completed AND (no due_date OR due_date >= today)\n- `overdue`: not completed AND due_date < today\n- `completed`: is_completed = true",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Filter by computed todo status.",
-            "schema": {
-              "type": "string",
-              "enum": ["active", "overdue", "completed"]
-            },
-            "example": "active"
-          },
-          {
-            "name": "category_id",
-            "in": "query",
-            "required": false,
-            "description": "Filter by category ID. Pass `null` (or omit) to return all categories. To get uncategorized todos, this filter cannot be used directly — retrieve all and filter client-side.",
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            },
-            "example": 3
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of todos (may be empty).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/TodoWithStatus"
-                      }
-                    }
-                  }
-                },
-                "examples": {
-                  "mixedList": {
-                    "summary": "Multiple todos with varying statuses",
-                    "value": {
-                      "success": true,
-                      "data": [
-                        {
-                          "id": 1,
-                          "user_id": 1,
-                          "category_id": 2,
-                          "title": "프로젝트 A 요구사항 분석 완료",
-                          "description": null,
-                          "due_date": "2026-05-05",
-                          "is_completed": false,
-                          "status": "active",
-                          "created_at": "2026-04-28T10:00:00.000Z",
-                          "updated_at": "2026-04-28T10:00:00.000Z"
-                        },
-                        {
-                          "id": 2,
-                          "user_id": 1,
-                          "category_id": null,
-                          "title": "회의 자료 준비",
-                          "description": "상세 마케팅 자료 및 PPT 포함",
-                          "due_date": "2026-04-25",
-                          "is_completed": false,
-                          "status": "overdue",
-                          "created_at": "2026-04-20T09:00:00.000Z",
-                          "updated_at": "2026-04-20T09:00:00.000Z"
-                        }
-                      ]
-                    }
-                  },
-                  "emptyList": {
-                    "summary": "No todos found",
-                    "value": {
-                      "success": true,
-                      "data": []
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "post": {
-        "tags": ["Todos"],
-        "operationId": "createTodo",
-        "summary": "Create a new todo",
-        "description": "Creates a new todo for the authenticated user.\n\n**Field constraints:**\n- `title` is required; maximum 50 characters.\n- `description` is optional; maximum 200 characters.\n- `due_date` is optional; format `YYYY-MM-DD`.\n- `category_id` is optional. When provided, the category must belong to the authenticated user.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTodoRequest"
-              },
-              "examples": {
-                "fullPayload": {
-                  "summary": "Todo with all optional fields",
-                  "value": {
-                    "title": "코드 리뷰 완료",
-                    "description": "PR #42 리뷰 및 승인",
-                    "due_date": "2026-04-30",
-                    "category_id": 1
-                  }
-                },
-                "minimalPayload": {
-                  "summary": "Todo with title only",
-                  "value": {
-                    "title": "우유, 계란, 당근 사기"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Todo created successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/TodoWithStatus"
-                    }
-                  }
-                },
-                "examples": {
-                  "created": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "id": 5,
-                        "user_id": 1,
-                        "category_id": 1,
-                        "title": "코드 리뷰 완료",
-                        "description": "PR #42 리뷰 및 승인",
-                        "due_date": "2026-04-30",
-                        "is_completed": false,
-                        "status": "active",
-                        "created_at": "2026-04-28T11:00:00.000Z",
-                        "updated_at": "2026-04-28T11:00:00.000Z"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error — title missing, title exceeds 50 chars, or description exceeds 200 chars.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "missingTitle": {
-                    "summary": "Title is required",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "제목은 필수 입력 항목입니다.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  },
-                  "titleTooLong": {
-                    "summary": "Title exceeds 50 characters",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "제목은 최대 50자까지 입력할 수 있습니다.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "description": "The supplied `category_id` belongs to another user.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "forbiddenCategory": {
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "해당 카테고리에 대한 접근 권한이 없습니다.",
-                        "type": "FORBIDDEN_ERROR"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/todos/{id}": {
-      "patch": {
-        "tags": ["Todos"],
-        "operationId": "updateTodo",
-        "summary": "Update a todo's fields",
-        "description": "Partially updates the todo identified by `id`. All body fields are optional — only the provided fields are updated.\n\nThe authenticated user must own the todo.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTodoRequest"
-              },
-              "examples": {
-                "updateTitle": {
-                  "summary": "Change title only",
-                  "value": {
-                    "title": "코드 리뷰 및 머지 완료"
-                  }
-                },
-                "updateMultipleFields": {
-                  "summary": "Change category and due date",
-                  "value": {
-                    "category_id": 2,
-                    "due_date": "2026-05-15"
-                  }
-                },
-                "removeCategory": {
-                  "summary": "Unassign category",
-                  "value": {
-                    "category_id": null
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Todo updated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/TodoWithStatus"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error on the provided fields.",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -654,237 +175,16 @@
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Todos"],
-        "operationId": "deleteTodo",
-        "summary": "Permanently delete a todo",
-        "description": "Removes the todo identified by `id` from the database. This action is irreversible.\n\nThe authenticated user must own the todo.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Todo deleted successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessageResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "message": "할일이 삭제되었습니다."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/todos/{id}/complete": {
-      "patch": {
-        "tags": ["Todos"],
-        "operationId": "completeTodo",
-        "summary": "Mark a todo as completed",
-        "description": "Sets `is_completed = true` for the todo. The returned object will have `status: \"completed\"`.\n\nIf the todo is already completed, the call is idempotent and returns the unchanged resource.\n\nThe authenticated user must own the todo.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Todo marked as completed.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/TodoWithStatus"
-                    }
-                  }
-                },
-                "examples": {
-                  "completed": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "id": 1,
-                        "user_id": 1,
-                        "category_id": 2,
-                        "title": "프로젝트 A 요구사항 분석 완료",
-                        "description": null,
-                        "due_date": "2026-04-25",
-                        "is_completed": true,
-                        "status": "completed",
-                        "created_at": "2026-04-20T09:00:00.000Z",
-                        "updated_at": "2026-04-28T12:00:00.000Z"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/todos/{id}/incomplete": {
-      "patch": {
-        "tags": ["Todos"],
-        "operationId": "incompleteTodo",
-        "summary": "Revert a completed todo back to active or overdue",
-        "description": "Sets `is_completed = false` for the todo. The returned `status` is then recomputed:\n- If `due_date` is in the past: `overdue`\n- Otherwise (or no `due_date`): `active`\n\nThe authenticated user must own the todo.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Todo reverted to incomplete. Status is `active` or `overdue` depending on `due_date`.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/TodoWithStatus"
-                    }
-                  }
-                },
-                "examples": {
-                  "revertedToOverdue": {
-                    "summary": "Due date in the past — becomes overdue",
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "id": 1,
-                        "user_id": 1,
-                        "category_id": 2,
-                        "title": "프로젝트 A 요구사항 분석 완료",
-                        "description": null,
-                        "due_date": "2026-04-25",
-                        "is_completed": false,
-                        "status": "overdue",
-                        "created_at": "2026-04-20T09:00:00.000Z",
-                        "updated_at": "2026-04-28T13:00:00.000Z"
-                      }
-                    }
-                  },
-                  "revertedToActive": {
-                    "summary": "Due date in the future — becomes active",
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "id": 3,
-                        "user_id": 1,
-                        "category_id": null,
-                        "title": "짐 정리하기",
-                        "description": null,
-                        "due_date": "2026-05-10",
-                        "is_completed": false,
-                        "status": "active",
-                        "created_at": "2026-04-28T09:00:00.000Z",
-                        "updated_at": "2026-04-28T14:00:00.000Z"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
     "/categories": {
       "get": {
-        "tags": ["Categories"],
-        "operationId": "getCategories",
-        "summary": "List all categories for the authenticated user",
-        "description": "Returns every category owned by the authenticated user, ordered by creation date ascending.",
+        "tags": [
+          "Category"
+        ],
+        "summary": "Get all categories",
         "security": [
           {
             "bearerAuth": []
@@ -892,67 +192,47 @@
         ],
         "responses": {
           "200": {
-            "description": "List of categories (may be empty).",
+            "description": "List of categories retrieved",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
                     },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Category"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Category"
+                          }
+                        }
                       }
                     }
-                  }
-                },
-                "examples": {
-                  "list": {
-                    "value": {
-                      "success": true,
-                      "data": [
-                        {
-                          "id": 1,
-                          "user_id": 1,
-                          "name": "업무",
-                          "created_at": "2026-04-28T09:00:00.000Z"
-                        },
-                        {
-                          "id": 2,
-                          "user_id": 1,
-                          "name": "개인",
-                          "created_at": "2026-04-28T09:01:00.000Z"
-                        }
-                      ]
-                    }
-                  },
-                  "empty": {
-                    "value": {
-                      "success": true,
-                      "data": []
-                    }
-                  }
+                  ]
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
       "post": {
-        "tags": ["Categories"],
-        "operationId": "createCategory",
+        "tags": [
+          "Category"
+        ],
         "summary": "Create a new category",
-        "description": "Creates a category scoped to the authenticated user.\n\n**Validation rules:**\n- `name` is required and must not be blank.\n- `name` must be at most 20 characters long.\n- `name` must be unique within the authenticated user's categories (case-sensitive).",
         "security": [
           {
             "bearerAuth": []
@@ -963,127 +243,121 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCategoryRequest"
-              },
-              "examples": {
-                "valid": {
-                  "value": {
-                    "name": "업무"
-                  }
-                }
+                "$ref": "#/components/schemas/CategoryRequest"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Category created successfully.",
+            "description": "Category successfully created",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
                     },
-                    "data": {
-                      "$ref": "#/components/schemas/Category"
-                    }
-                  }
-                },
-                "examples": {
-                  "created": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "id": 3,
-                        "user_id": 1,
-                        "name": "업무",
-                        "created_at": "2026-04-28T09:05:00.000Z"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Category"
+                        }
                       }
                     }
-                  }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error — name is empty or exceeds 20 characters.",
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "emptyName": {
-                    "summary": "Empty name",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "카테고리 이름을 입력해주세요.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  },
-                  "nameTooLong": {
-                    "summary": "Name exceeds 20 characters",
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "카테고리 이름은 최대 20자까지 입력할 수 있습니다.",
-                        "type": "VALIDATION_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           },
           "409": {
-            "description": "A category with the same name already exists for this user.",
+            "description": "Category name already exists for this user",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "duplicate": {
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "이미 존재하는 카테고리명입니다.",
-                        "type": "CONFLICT_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
     "/categories/{id}": {
-      "patch": {
-        "tags": ["Categories"],
-        "operationId": "updateCategory",
-        "summary": "Rename a category",
-        "description": "Updates the `name` of the category identified by `id`.\n\nThe authenticated user must own the category. The new name must be unique within the user's categories.\n\n**Validation rules:** same as `POST /categories`.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Get a specific category",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
+        "responses": {
+          "200": {
+            "description": "Category details retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Category"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Update a category",
+        "security": [
           {
-            "$ref": "#/components/parameters/ResourceId"
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -1091,143 +365,534 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCategoryRequest"
-              },
-              "examples": {
-                "rename": {
-                  "value": {
-                    "name": "업무 (회사)"
-                  }
-                }
+                "$ref": "#/components/schemas/CategoryRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Category renamed successfully.",
+            "description": "Category successfully updated",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
                     },
-                    "data": {
-                      "$ref": "#/components/schemas/Category"
-                    }
-                  }
-                },
-                "examples": {
-                  "updated": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "id": 1,
-                        "user_id": 1,
-                        "name": "업무 (회사)",
-                        "created_at": "2026-04-28T09:00:00.000Z"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Category"
+                        }
                       }
                     }
-                  }
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "description": "Validation error on the new name.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "description": "Another category with the same new name already exists for this user.",
+            "description": "Forbidden (not owner)",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "duplicate": {
-                    "value": {
-                      "success": false,
-                      "error": {
-                        "message": "이미 존재하는 카테고리명입니다.",
-                        "type": "CONFLICT_ERROR"
-                      }
-                    }
-                  }
                 }
               }
             }
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
       "delete": {
-        "tags": ["Categories"],
-        "operationId": "deleteCategory",
+        "tags": [
+          "Category"
+        ],
         "summary": "Delete a category",
-        "description": "Deletes the category identified by `id`.\n\nAll todos that belonged to this category are **NOT deleted** — their `category_id` is set to `null` (database `ON DELETE SET NULL` constraint).\n\nThe authenticated user must own the category.",
+        "description": "Deleting a category will set the category_id of all associated todos to NULL.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Category successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/todos": {
+      "get": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Get all todos",
         "parameters": [
           {
-            "$ref": "#/components/parameters/ResourceId"
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "overdue",
+                "completed"
+              ]
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Category deleted. Affected todos now have `category_id: null`.",
+            "description": "List of todos retrieved",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessMessageResponse"
-                },
-                "examples": {
-                  "success": {
-                    "value": {
-                      "success": true,
-                      "data": {
-                        "message": "카테고리가 삭제되었습니다. 소속 할일은 카테고리 미지정 상태가 되었습니다."
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Todo"
+                          }
+                        }
                       }
                     }
-                  }
+                  ]
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Create a new todo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Todo successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Todo"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "$ref": "#/components/responses/Forbidden"
+            "description": "Forbidden (invalid category ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/todos/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Get a specific todo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todo details retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Todo"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           },
           "404": {
-            "$ref": "#/components/responses/NotFound"
+            "description": "Todo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Update a todo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Todo successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Todo"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Todo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Delete a todo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todo successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Todo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/todos/{id}/complete": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Mark todo as completed",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todo successfully completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Todo"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Todo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/todos/{id}/incomplete": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Todo"
+        ],
+        "summary": "Mark todo as incomplete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todo successfully set to incomplete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Todo"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Todo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1238,348 +903,28 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "HS-512 signed JWT token. Obtain from `POST /auth/sign-in` or `POST /auth/sign-up`. Include in every protected request as `Authorization: Bearer <token>`."
-      }
-    },
-    "parameters": {
-      "ResourceId": {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "The numeric ID of the resource.",
-        "schema": {
-          "type": "integer",
-          "format": "int64",
-          "minimum": 1
-        },
-        "example": 1
+        "bearerFormat": "JWT"
       }
     },
     "schemas": {
-      "SignUpRequest": {
+      "SuccessResponse": {
         "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "Unique RFC 5322 email address.",
-            "example": "chulsu.kim@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "minLength": 8,
-            "description": "Plain-text password (minimum 8 characters). The server stores only the bcrypt hash.",
-            "example": "SecurePass123"
-          }
-        }
-      },
-      "SignInRequest": {
-        "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "Registered email address.",
-            "example": "chulsu.kim@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "description": "Account password.",
-            "example": "SecurePass123"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "description": "Public representation of a user (password is never returned).",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Auto-incremented primary key.",
-            "example": 1
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "Unique email address.",
-            "example": "chulsu.kim@example.com"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Account creation timestamp (ISO 8601, KST).",
-            "example": "2026-04-28T10:00:00.000Z"
-          }
-        },
-        "required": ["id", "email", "created_at"]
-      },
-      "AuthResponse": {
-        "type": "object",
-        "description": "Wrapper returned by sign-up and sign-in.",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "token": {
-                "type": "string",
-                "description": "HS-512 signed JWT token. Store in memory or HttpOnly cookie.",
-                "example": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9..."
-              },
-              "user": {
-                "$ref": "#/components/schemas/User"
-              }
-            },
-            "required": ["token", "user"]
-          }
-        },
-        "required": ["success", "data"]
-      },
-      "Category": {
-        "type": "object",
-        "description": "A user-defined label for grouping todos.",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Auto-incremented primary key.",
-            "example": 1
-          },
-          "user_id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "ID of the owning user.",
-            "example": 1
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 20,
-            "description": "Category name — unique per user, max 20 characters.",
-            "example": "업무"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Creation timestamp (ISO 8601).",
-            "example": "2026-04-28T09:00:00.000Z"
-          }
-        },
-        "required": ["id", "user_id", "name", "created_at"]
-      },
-      "CreateCategoryRequest": {
-        "type": "object",
-        "required": ["name"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20,
-            "description": "Desired category name. Must be unique for the authenticated user.",
-            "example": "업무"
-          }
-        }
-      },
-      "UpdateCategoryRequest": {
-        "type": "object",
-        "required": ["name"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20,
-            "description": "New category name. Must be unique for the authenticated user.",
-            "example": "업무 (회사)"
-          }
-        }
-      },
-      "TodoStatus": {
-        "type": "string",
-        "enum": ["active", "overdue", "completed"],
-        "description": "Computed status of a todo:\n- `active`: not completed AND (no due_date OR due_date >= today)\n- `overdue`: not completed AND due_date < today\n- `completed`: is_completed = true"
-      },
-      "Todo": {
-        "type": "object",
-        "description": "A task item owned by a user. The `status` field is computed server-side and never stored in the database.",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Auto-incremented primary key.",
-            "example": 1
-          },
-          "user_id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "ID of the owning user.",
-            "example": 1
-          },
-          "category_id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "description": "ID of the assigned category. `null` means uncategorized.",
-            "example": 2
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 50,
-            "description": "Todo title — required, max 50 characters.",
-            "example": "프로젝트 A 요구사항 분석 완료"
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 200,
-            "nullable": true,
-            "description": "Optional detail text — max 200 characters.",
-            "example": "PRD와 도메인 정의서 기반으로 요구사항 분석 작성"
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true,
-            "description": "Target completion date in `YYYY-MM-DD` format. Optional.",
-            "example": "2026-05-05"
-          },
-          "is_completed": {
-            "type": "boolean",
-            "description": "Whether the todo has been manually marked as completed.",
-            "default": false,
-            "example": false
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Creation timestamp (ISO 8601).",
-            "example": "2026-04-28T10:00:00.000Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Last modification timestamp (ISO 8601).",
-            "example": "2026-04-28T10:00:00.000Z"
-          }
-        },
-        "required": ["id", "user_id", "category_id", "title", "description", "due_date", "is_completed", "created_at", "updated_at"]
-      },
-      "TodoWithStatus": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Todo"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "status": {
-                "$ref": "#/components/schemas/TodoStatus"
-              }
-            },
-            "required": ["status"]
-          }
+        "required": [
+          "success"
         ],
-        "description": "Todo object enriched with the computed `status` field returned by the API."
-      },
-      "CreateTodoRequest": {
-        "type": "object",
-        "required": ["title"],
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "description": "Todo title. Required.",
-            "example": "코드 리뷰 완료"
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 200,
-            "nullable": true,
-            "description": "Optional detail text.",
-            "example": "PR #42 리뷰 및 승인"
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true,
-            "description": "Optional target completion date (`YYYY-MM-DD`).",
-            "example": "2026-04-30"
-          },
-          "category_id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "description": "Optional category ID. Must belong to the authenticated user.",
-            "example": 1
-          }
-        }
-      },
-      "UpdateTodoRequest": {
-        "type": "object",
-        "description": "All fields are optional. Only the provided fields are updated.",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "description": "New title.",
-            "example": "코드 리뷰 및 머지 완료"
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 200,
-            "nullable": true,
-            "description": "New description. Pass `null` to clear.",
-            "example": "PR #42 코드 리뷰, 승인, 머지 포함"
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "nullable": true,
-            "description": "New due date. Pass `null` to remove.",
-            "example": "2026-05-01"
-          },
-          "category_id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "description": "New category ID. Pass `null` to unassign.",
-            "example": 2
-          }
-        },
-        "minProperties": 1
-      },
-      "SuccessMessageResponse": {
-        "type": "object",
-        "description": "Generic success response with a human-readable message.",
         "properties": {
           "success": {
             "type": "boolean",
             "example": true
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "message": {
-                "type": "string",
-                "example": "작업이 완료되었습니다."
-              }
-            },
-            "required": ["message"]
           }
-        },
-        "required": ["success", "data"]
+        }
       },
       "ErrorResponse": {
         "type": "object",
-        "description": "Standard error response envelope returned for all 4xx and 5xx status codes.",
+        "required": [
+          "success",
+          "error"
+        ],
         "properties": {
           "success": {
             "type": "boolean",
@@ -1587,142 +932,197 @@
           },
           "error": {
             "type": "object",
+            "required": [
+              "message",
+              "type"
+            ],
             "properties": {
               "message": {
-                "type": "string",
-                "description": "Human-readable description of the error (Korean).",
-                "example": "요청을 처리할 수 없습니다."
+                "type": "string"
               },
               "type": {
-                "type": "string",
-                "description": "Machine-readable error type constant.",
-                "enum": [
-                  "VALIDATION_ERROR",
-                  "AUTH_ERROR",
-                  "FORBIDDEN_ERROR",
-                  "NOT_FOUND_ERROR",
-                  "CONFLICT_ERROR",
-                  "SERVER_ERROR",
-                  "UNKNOWN_ERROR"
-                ],
-                "example": "VALIDATION_ERROR"
-              },
-              "stack": {
-                "type": "string",
-                "description": "Stack trace. Only present in `NODE_ENV=development`.",
-                "example": "Error: ...\n    at ..."
-              }
-            },
-            "required": ["message", "type"]
-          }
-        },
-        "required": ["success", "error"]
-      }
-    },
-    "responses": {
-      "Unauthorized": {
-        "description": "Missing or invalid JWT token.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "missingToken": {
-                "summary": "No Authorization header",
-                "value": {
-                  "success": false,
-                  "error": {
-                    "message": "인증 토큰이 필요합니다.",
-                    "type": "AUTH_ERROR"
-                  }
-                }
-              },
-              "expiredToken": {
-                "summary": "Token expired or tampered",
-                "value": {
-                  "success": false,
-                  "error": {
-                    "message": "유효하지 않은 토큰입니다.",
-                    "type": "AUTH_ERROR"
-                  }
-                }
+                "type": "string"
               }
             }
           }
         }
       },
-      "Forbidden": {
-        "description": "Authenticated but the resource belongs to another user.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "notOwner": {
-                "value": {
-                  "success": false,
-                  "error": {
-                    "message": "해당 리소스에 대한 접근 권한이 없습니다.",
-                    "type": "FORBIDDEN_ERROR"
+      "SignUpRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "password123"
+          }
+        }
+      },
+      "SignInRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123"
+          }
+        }
+      },
+      "AuthResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "JWT token for subsequent requests"
+                  },
+                  "user": {
+                    "$ref": "#/components/schemas/User"
                   }
                 }
               }
             }
           }
-        }
+        ]
       },
-      "NotFound": {
-        "description": "The requested resource does not exist.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "todoNotFound": {
-                "summary": "Todo not found",
-                "value": {
-                  "success": false,
-                  "error": {
-                    "message": "존재하지 않는 할일입니다.",
-                    "type": "NOT_FOUND_ERROR"
-                  }
-                }
-              },
-              "categoryNotFound": {
-                "summary": "Category not found",
-                "value": {
-                  "success": false,
-                  "error": {
-                    "message": "존재하지 않는 카테고리입니다.",
-                    "type": "NOT_FOUND_ERROR"
-                  }
-                }
-              }
-            }
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
-      "InternalServerError": {
-        "description": "An unexpected server-side error occurred. Stack trace is only included when `NODE_ENV=development`.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "serverError": {
-                "value": {
-                  "success": false,
-                  "error": {
-                    "message": "서버 오류가 발생했습니다.",
-                    "type": "SERVER_ERROR"
-                  }
-                }
-              }
-            }
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CategoryRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 20,
+            "example": "Work"
+          }
+        }
+      },
+      "Todo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "category_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "is_completed": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "overdue",
+              "completed"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TodoRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 50,
+            "example": "Buy milk"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "2% fat milk"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-05-01"
+          },
+          "category_id": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
           }
         }
       }
