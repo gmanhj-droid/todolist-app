@@ -169,11 +169,11 @@
 - `backend/.eslintrc.json`, `jest.config.js`, `.gitignore` 작성
 
 **완료 조건**
-- [ ] `npm install -w backend` 오류 없이 완료
-- [ ] `backend/src/` 하위 8개 디렉토리 존재
-- [ ] `server.js`, `app.js` 골격 파일 문법 오류 없음
-- [ ] `npm run lint -w backend` 설정 오류 없음
-- [ ] `npm run test -w backend` 테스트 프레임워크 정상 기동
+- [x] `npm install -w backend` 오류 없이 완료
+- [x] `backend/src/` 하위 8개 디렉토리 존재
+- [x] `server.js`, `app.js` 골격 파일 문법 오류 없음
+- [x] `npm run lint -w backend` 설정 오류 없음
+- [x] `npm run test -w backend` 테스트 프레임워크 정상 기동
 
 **의존 태스크**: 없음 | **예상 소요**: 30분
 
@@ -188,10 +188,10 @@
   - `env` 객체 파싱·타입 변환 후 내보내기
 
 **완료 조건**
-- [ ] `.env.example`에 모든 키가 예시 값과 함께 정의
-- [ ] `DATABASE_URL` 누락 시 명확한 에러 메시지 출력 후 종료
-- [ ] `env.port`가 숫자 타입 반환
-- [ ] `env.isDevelopment`, `env.isProduction` 올바르게 동작
+- [x] `.env.example`에 모든 키가 예시 값과 함께 정의
+- [x] `DATABASE_URL` 누락 시 명확한 에러 메시지 출력 후 종료
+- [x] `env.port`가 숫자 타입 반환
+- [x] `env.isDevelopment`, `env.isProduction` 올바르게 동작
 
 **의존 태스크**: BE-01 | **예상 소요**: 20분
 
@@ -204,9 +204,9 @@
 - `pg.Pool` 인스턴스, `db.query()` 래퍼, `testConnection()` 헬퍼
 
 **완료 조건**
-- [ ] `testConnection()` 성공/실패 분기 동작
-- [ ] `db.query()` 단순 SELECT 정상 실행
-- [ ] 연결 풀 에러 콘솔 로깅
+- [x] `testConnection()` 성공/실패 분기 동작
+- [x] `db.query()` 단순 SELECT 정상 실행
+- [x] 연결 풀 에러 콘솔 로깅
 
 **의존 태스크**: BE-02 | **예상 소요**: 30분
 
@@ -220,10 +220,10 @@
 - `utils/errorHandler.js`: `AppError` 클래스 (message, statusCode, type)
 
 **완료 조건**
-- [ ] `generateToken()` → JWT 문자열 반환
-- [ ] `verifyToken(만료/위변조)` → `AppError` 401 throw
-- [ ] `hashPassword()` → `verifyPassword()`로 검증 시 `true`
-- [ ] `new AppError('msg', 409).statusCode === 409`
+- [x] `generateToken()` → JWT 문자열 반환
+- [x] `verifyToken(만료/위변조)` → `AppError` 401 throw
+- [x] `hashPassword()` → `verifyPassword()`로 검증 시 `true`
+- [x] `new AppError('msg', 409).statusCode === 409`
 
 **의존 태스크**: BE-02 | **예상 소요**: 30분
 
@@ -237,11 +237,11 @@
 - `middleware/authMiddleware.js`: `Authorization: Bearer <token>` 파싱, `verifyToken()`, `req.user` 설정
 
 **완료 조건**
-- [ ] 모든 요청에 method/path/statusCode/duration 로깅
-- [ ] `AppError(msg, 409)` → 응답 status 409, `{ success: false, error: { message } }`
-- [ ] `NODE_ENV=production` 에러 응답에 `stack` 미포함
-- [ ] 유효 JWT → `req.user.id` 설정
-- [ ] 토큰 없음/위변조 → 401 반환
+- [x] 모든 요청에 method/path/statusCode/duration 로깅
+- [x] `AppError(msg, 409)` → 응답 status 409, `{ success: false, error: { message } }`
+- [x] `NODE_ENV=production` 에러 응답에 `stack` 미포함
+- [x] 유효 JWT → `req.user.id` 설정
+- [x] 토큰 없음/위변조 → 401 반환
 
 **의존 태스크**: BE-03, BE-04 | **예상 소요**: 45분
 
@@ -255,10 +255,10 @@
 - `server.js`: `testConnection()` 성공 후 `app.listen()`
 
 **완료 조건**
-- [ ] `npm run dev -w backend` 지정 포트로 기동
-- [ ] 미정의 경로 → 404 반환
-- [ ] `OPTIONS` 요청 → CORS 헤더 포함
-- [ ] 에러 핸들러 최하단 등록 확인
+- [x] `npm run dev -w backend` 지정 포트로 기동
+- [x] 미정의 경로 → 404 반환
+- [x] `OPTIONS` 요청 → CORS 헤더 포함
+- [x] 에러 핸들러 최하단 등록 확인
 
 **의존 태스크**: BE-05 | **예상 소요**: 30분
 
@@ -271,10 +271,10 @@
 - 모든 쿼리 파라미터 바인딩(`$1`, `$2`) 필수
 
 **완료 조건**
-- [ ] `findByEmail(미존재)` → `null` 반환
-- [ ] `findById()` 결과에 `password` 필드 없음
-- [ ] `deleteById()` 후 연관 데이터 CASCADE 삭제 확인
-- [ ] 문자열 연결 SQL 없음
+- [x] `findByEmail(미존재)` → `null` 반환
+- [x] `findById()` 결과에 `password` 필드 없음
+- [x] `deleteById()` 후 연관 데이터 CASCADE 삭제 확인
+- [x] 문자열 연결 SQL 없음
 
 **의존 태스크**: BE-03 | **예상 소요**: 30분
 
@@ -288,10 +288,10 @@
 - `deleteAccount(userId)`: CASCADE는 DB 위임
 
 **완료 조건**
-- [ ] 중복 이메일 → AppError 409
-- [ ] 비밀번호 7자 → AppError 400
-- [ ] 미존재 이메일 → AppError 401 (이메일 존재 여부 미구별)
-- [ ] 잘못된 비밀번호 → AppError 401
+- [x] 중복 이메일 → AppError 409
+- [x] 비밀번호 7자 → AppError 400
+- [x] 미존재 이메일 → AppError 401 (이메일 존재 여부 미구별)
+- [x] 잘못된 비밀번호 → AppError 401
 
 **의존 태스크**: BE-04, BE-07 | **예상 소요**: 45분
 
@@ -304,12 +304,12 @@
 - `authRoutes.js`: POST /sign-up, POST /sign-in, POST /sign-out(authMiddleware), DELETE /account(authMiddleware)
 
 **완료 조건**
-- [ ] POST /api/auth/sign-up → 201 + JWT
-- [ ] POST /api/auth/sign-up 중복 이메일 → 409
-- [ ] POST /api/auth/sign-in → 200 + JWT
-- [ ] POST /api/auth/sign-in 잘못된 자격증명 → 401
-- [ ] DELETE /api/auth/account 인증 후 계정+연관 데이터 삭제
-- [ ] 모든 컨트롤러 `next(error)` 패턴 적용
+- [x] POST /api/auth/sign-up → 201 + JWT
+- [x] POST /api/auth/sign-up 중복 이메일 → 409
+- [x] POST /api/auth/sign-in → 200 + JWT
+- [x] POST /api/auth/sign-in 잘못된 자격증명 → 401
+- [x] DELETE /api/auth/account 인증 후 계정+연관 데이터 삭제
+- [x] 모든 컨트롤러 `next(error)` 패턴 적용
 
 **의존 태스크**: BE-06, BE-08 | **예상 소요**: 45분
 
@@ -321,10 +321,10 @@
 - `findAllByUserId(userId)`, `findById(id)`, `findByUserIdAndName(userId, name)`, `create({ userId, name })`, `update(id, { name })`, `deleteById(id)`
 
 **완료 조건**
-- [ ] `findAllByUserId()` 해당 사용자 카테고리만 반환
-- [ ] `deleteById()` 후 소속 todos `category_id` → NULL
-- [ ] `findByUserIdAndName()` 중복 존재 시 row 반환
-- [ ] 모든 쿼리 파라미터 바인딩 적용
+- [x] `findAllByUserId()` 해당 사용자 카테고리만 반환
+- [x] `deleteById()` 후 소속 todos `category_id` → NULL
+- [x] `findByUserIdAndName()` 중복 존재 시 row 반환
+- [x] 모든 쿼리 파라미터 바인딩 적용
 
 **의존 태스크**: BE-03 | **예상 소요**: 30분
 
@@ -336,11 +336,11 @@
 - `getCategories(userId)`, `createCategory(userId, { name })` (name 필수·20자·중복 검증), `updateCategory(userId, categoryId, { name })` (존재·소유권·중복 검증), `deleteCategory(userId, categoryId)` (존재·소유권 검증)
 
 **완료 조건**
-- [ ] `createCategory` name 빈 문자열 → AppError 400
-- [ ] `createCategory` name 21자 → AppError 400
-- [ ] `createCategory` 중복 이름 → AppError 409
-- [ ] `updateCategory` 미존재 ID → AppError 404
-- [ ] `updateCategory` 타인 소유 → AppError 403
+- [x] `createCategory` name 빈 문자열 → AppError 400
+- [x] `createCategory` name 21자 → AppError 400
+- [x] `createCategory` 중복 이름 → AppError 409
+- [x] `updateCategory` 미존재 ID → AppError 404
+- [x] `updateCategory` 타인 소유 → AppError 403
 
 **의존 태스크**: BE-04, BE-10 | **예상 소요**: 45분
 
@@ -353,11 +353,11 @@
 - `categoryRoutes.js`: 모든 라우트 `authMiddleware` 적용. GET /, POST /, PATCH /:id, DELETE /:id
 
 **완료 조건**
-- [ ] GET /api/categories 인증 사용자 목록 반환
-- [ ] GET /api/categories 토큰 없음 → 401
-- [ ] POST /api/categories name 누락 → 400
-- [ ] PATCH /api/categories/:id 타인 소유 → 403
-- [ ] DELETE /api/categories/:id 소속 todos category_id → NULL
+- [x] GET /api/categories 인증 사용자 목록 반환
+- [x] GET /api/categories 토큰 없음 → 401
+- [x] POST /api/categories name 누락 → 400
+- [x] PATCH /api/categories/:id 타인 소유 → 403
+- [x] DELETE /api/categories/:id 소속 todos category_id → NULL
 
 **의존 태스크**: BE-06, BE-11 | **예상 소요**: 40분
 
@@ -369,10 +369,10 @@
 - `findAllByUserId(userId, filters)` (동적 categoryId 필터), `findById(id)`, `create({...})`, `update(id, fields)` (동적 SET), `setCompleted(id, isCompleted)`, `deleteById(id)`
 
 **완료 조건**
-- [ ] `findAllByUserId(userId, { categoryId: 2 })` → category_id = 2만 반환
-- [ ] `update(id, { title })` → title만 변경, 나머지 유지
-- [ ] `setCompleted(id, true)` 후 `findById()` → `is_completed = true`
-- [ ] 동적 UPDATE 쿼리 파라미터 바인딩 확인
+- [x] `findAllByUserId(userId, { categoryId: 2 })` → category_id = 2만 반환
+- [x] `update(id, { title })` → title만 변경, 나머지 유지
+- [x] `setCompleted(id, true)` 후 `findById()` → `is_completed = true`
+- [x] 동적 UPDATE 쿼리 파라미터 바인딩 확인
 
 **의존 태스크**: BE-03 | **예상 소요**: 45분
 
@@ -388,12 +388,12 @@
 - 내부 헬퍼 `calculateStatus(todo)` 분리
 
 **완료 조건**
-- [ ] `getTodos({ status: 'overdue' })` → 오늘 이전 due_date 미완료만 반환
-- [ ] `getTodos({ status: 'active' })` → due_date 없거나 오늘 이후 미완료만 반환
-- [ ] `createTodo` title 51자 → AppError 400
-- [ ] `createTodo` 타인 categoryId → AppError 403
-- [ ] `completeTodo` → status `'completed'` 반환
-- [ ] `incompleteTodo` → due_date 기준 status 재계산
+- [x] `getTodos({ status: 'overdue' })` → 오늘 이전 due_date 미완료만 반환
+- [x] `getTodos({ status: 'active' })` → due_date 없거나 오늘 이후 미완료만 반환
+- [x] `createTodo` title 51자 → AppError 400
+- [x] `createTodo` 타인 categoryId → AppError 403
+- [x] `completeTodo` → status `'completed'` 반환
+- [x] `incompleteTodo` → due_date 기준 status 재계산
 
 **의존 태스크**: BE-04, BE-10, BE-13 | **예상 소요**: 60분
 
@@ -406,11 +406,11 @@
 - `todoRoutes.js`: 모든 라우트 `authMiddleware`. GET /, POST /, PATCH /:id, DELETE /:id, PATCH /:id/complete, PATCH /:id/incomplete (라우트 순서 주의)
 
 **완료 조건**
-- [ ] GET /api/todos?status=overdue → overdue 필터
-- [ ] GET /api/todos?category_id=1 → 해당 카테고리 필터
-- [ ] POST /api/todos title 누락 → 400
-- [ ] PATCH /api/todos/:id/complete → is_completed=true, status='completed'
-- [ ] 인증 없는 요청 → 401 / 타인 리소스 → 403
+- [x] GET /api/todos?status=overdue → overdue 필터
+- [x] GET /api/todos?category_id=1 → 해당 카테고리 필터
+- [x] POST /api/todos title 누락 → 400
+- [x] PATCH /api/todos/:id/complete → is_completed=true, status='completed'
+- [x] 인증 없는 요청 → 401 / 타인 리소스 → 403
 
 **의존 태스크**: BE-06, BE-14 | **예상 소요**: 45분
 
@@ -419,9 +419,9 @@
 ### BE-16 — 인증 API 통합 테스트
 
 **완료 조건**
-- [ ] 인증 4개 엔드포인트 정상·오류 케이스 모두 통과
-- [ ] 탈퇴 후 재로그인 → 401 테스트 확인
-- [ ] `npm run test -w backend` 인증 테스트 green
+- [x] 인증 4개 엔드포인트 정상·오류 케이스 모두 통과
+- [x] 탈퇴 후 재로그인 → 401 테스트 확인
+- [x] `npm run test -w backend` 인증 테스트 green
 
 **의존 태스크**: BE-09 | **예상 소요**: 60분
 
@@ -430,10 +430,10 @@
 ### BE-17 — 카테고리 API 통합 테스트
 
 **완료 조건**
-- [ ] 카테고리 4개 엔드포인트 정상·오류 케이스 통과
-- [ ] 카테고리 삭제 → todos category_id NULL 통합 테스트 확인
-- [ ] 소유권 검증(403) 테스트 커버
-- [ ] `npm run test -w backend` 카테고리 테스트 green
+- [x] 카테고리 4개 엔드포인트 정상·오류 케이스 통과
+- [x] 카테고리 삭제 → todos category_id NULL 통합 테스트 확인
+- [x] 소유권 검증(403) 테스트 커버
+- [x] `npm run test -w backend` 카테고리 테스트 green
 
 **의존 태스크**: BE-12 | **예상 소요**: 60분
 
@@ -442,10 +442,10 @@
 ### BE-18 — 할일 API 통합 테스트
 
 **완료 조건**
-- [ ] 할일 6개 엔드포인트 정상·오류 케이스 통과
-- [ ] status 계산 4가지 경우 단위 테스트 커버 (오늘 날짜 = active 포함)
-- [ ] 복합 필터(status + category_id) 테스트 확인
-- [ ] `npm run test -w backend` 할일 테스트 green
+- [x] 할일 6개 엔드포인트 정상·오류 케이스 통과
+- [x] status 계산 4가지 경우 단위 테스트 커버 (오늘 날짜 = active 포함)
+- [x] 복합 필터(status + category_id) 테스트 확인
+- [x] `npm run test -w backend` 할일 테스트 green
 
 **의존 태스크**: BE-15 | **예상 소요**: 75분
 
@@ -454,11 +454,11 @@
 ### BE-19 — 전체 API 보안 검증
 
 **완료 조건**
-- [ ] 14개 엔드포인트 전체 구현 및 명세 일치
-- [ ] 인증 필요 11개 라우트 전체 `authMiddleware` 적용 확인
-- [ ] Repository 파일에서 문자열 연결 SQL 없음 확인
-- [ ] `NODE_ENV=production` 에러 응답에 `stack` 미포함 확인
-- [ ] `npm run test -w backend` 전체 통과
+- [x] 14개 엔드포인트 전체 구현 및 명세 일치
+- [x] 인증 필요 11개 라우트 전체 `authMiddleware` 적용 확인
+- [x] Repository 파일에서 문자열 연결 SQL 없음 확인
+- [x] `NODE_ENV=production` 에러 응답에 `stack` 미포함 확인
+- [x] `npm run test -w backend` 전체 통과
 - [ ] 전체 플로우 (회원가입 → 로그인 → 할일 CRUD → 탈퇴) 수동 검증 완료
 
 **의존 태스크**: BE-16, BE-17, BE-18 | **예상 소요**: 60분

@@ -63,6 +63,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests (rate limit: 10 per hour per IP)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -97,6 +107,16 @@
           },
           "401": {
             "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (rate limit: 10 per hour per IP)",
             "content": {
               "application/json": {
                 "schema": {
@@ -305,51 +325,6 @@
           }
         }
       ],
-      "get": {
-        "tags": [
-          "Category"
-        ],
-        "summary": "Get a specific category",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Category details retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/Category"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Category not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
       "patch": {
         "tags": [
           "Category"
@@ -609,51 +584,6 @@
           }
         }
       ],
-      "get": {
-        "tags": [
-          "Todo"
-        ],
-        "summary": "Get a specific todo",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Todo details retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/Todo"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Todo not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
       "patch": {
         "tags": [
           "Todo"
@@ -669,7 +599,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TodoRequest"
+                "$ref": "#/components/schemas/TodoUpdateRequest"
               }
             }
           }
@@ -941,7 +871,16 @@
                 "type": "string"
               },
               "type": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "CONFLICT_ERROR",
+                  "AUTH_ERROR",
+                  "FORBIDDEN_ERROR",
+                  "NOT_FOUND_ERROR",
+                  "RATE_LIMIT_ERROR",
+                  "INTERNAL_ERROR"
+                ]
               }
             }
           }
@@ -1030,6 +969,9 @@
           "id": {
             "type": "integer"
           },
+          "user_id": {
+            "type": "integer"
+          },
           "name": {
             "type": "string",
             "maxLength": 20
@@ -1057,6 +999,9 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "integer"
+          },
+          "user_id": {
             "type": "integer"
           },
           "category_id": {
@@ -1117,6 +1062,34 @@
           "due_date": {
             "type": "string",
             "format": "date",
+            "example": "2026-05-01"
+          },
+          "category_id": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          }
+        }
+      },
+      "TodoUpdateRequest": {
+        "type": "object",
+        "description": "All fields are optional for partial updates (PATCH).",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 50,
+            "example": "Buy milk"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true,
+            "example": "2% fat milk"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
             "example": "2026-05-01"
           },
           "category_id": {

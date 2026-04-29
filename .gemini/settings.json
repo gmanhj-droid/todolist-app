@@ -4,8 +4,6 @@
       "command": "npx",
       "args": ["/c", "npx", "-y", "@upstash/context7-mcp"]
     },
-    
-    },
     "playwright": {
       "command": "npx",
       "args": ["/c", "npx", "-y", "@playwright/mcp@latest"]

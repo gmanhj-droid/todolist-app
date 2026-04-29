@@ -3,17 +3,20 @@
   "mcp": {
     "context7": {
       "type": "local",
-      "command": [ "npx","-y", "@upstash/context7-mcp" ],
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
       "enabled": true
     },
     "playwright": {
       "type": "local",
-      "command": [ "npx", "-y", "@playwright/mcp@latest"],
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
       "enabled": true
     },
     "chrome-devtools": {
       "type": "local",
-      "command": [ "npx", "-y", "chrome-devtools-mcp@latest"],
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"],
       "enabled": true
     },
     "supabase": {
@@ -22,8 +25,14 @@
       "enabled": true
     },
     "postgresql-mcp": {
-    "type": "local",
-      "command": [ "npx", "-y", "@henkey/postgres-mcp-server"],
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y", 
+        "@henkey/postgres-mcp-server", 
+        "--connection-string", 
+        "postgresql://postgres:postgres@localhost:5432/todolist_dev"
+      ],
       "enabled": true
     }
   }

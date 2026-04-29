@@ -1,18 +1,32 @@
-const express = require("express");
-const { createMockMiddleware } = require("openapi-mock-express-middleware");
-const swaggerUi = require("swagger-ui-express");
-const swaggerDoc = require("../swagger/swagger.json");
+import { env } from './src/config/env.js';
+import { testConnection } from './src/config/database.js';
+import app from './src/app.js';
 
-const app = express();
+async function bootstrap() {
+  try {
+    await testConnection();
 
-// Mock Server
-app.use("/api", createMockMiddleware({ spec: "../swagger/swagger.json" }));
+    const server = app.listen(env.port, () => {
+      console.log(
+        `Server started in ${env.nodeEnv} mode on http://localhost:${env.port}`
+      );
+    });
 
-// Swagger UI
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+    // Graceful shutdown
+    const shutdown = (signal) => {
+      console.log(`${signal} received — shutting down gracefully.`);
+      server.close(() => {
+        console.log('HTTP server closed.');
+        process.exit(0);
+      });
+    };
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Mock server is running on http://localhost:${PORT}/api`);
-  console.log(`Swagger UI is available on http://localhost:${PORT}/docs`);
-});
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+  } catch (err) {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  }
+}
+
+bootstrap();
